@@ -1,54 +1,50 @@
-#!/bin/bash
+#!/data/data/com.termux/files/usr/bin/bash
 
-echo "Generating Cloudflare IP list..."
-rm -f ips.txt
+G='\033[0;32m'; B='\033[1;34m'; N='\033[0m'
 
-# Best Cloudflare prefixes
-prefixes=(
-104.16
-104.17
-104.18
-104.19
-104.20
-104.21
-104.22
-104.23
-104.24
-104.25
-104.26
-172.64
-172.65
-172.66
-172.67
-172.68
-172.69
+echo -e "\n${B}⚡ HamidScanner ULTRA — 2000 Parallel Cloudflare Scan${N}\n"
+
+# بهترین رنج‌های Cloudflare
+ranges=(
+104.16 104.17 104.18 104.19 104.20 104.21 104.22 104.23 104.24 104.25 104.26
+172.64 172.65 172.66 172.67 172.68 172.69
 188.114
 )
 
-# Generate IPs without prips
-for p in "${prefixes[@]}"; do
-    for i in $(seq 0 255); do
-        for j in $(seq 1 254); do
-            echo "$p.$i.$j" >> ips.txt
-        done
-    done
+results="results.tmp"
+rm -f $results
+
+total=2000
+threads=50
+running=0
+
+scan_ip() {
+    ip=$1
+    ping_output=$(ping -c1 -W1 $ip 2>/dev/null)
+    ms=$(echo "$ping_output" | grep 'time=' | awk -F'time=' '{print $2}' | awk '{print $1}')
+    [[ -n "$ms" ]] && echo "$ip,$ms" >> $results
+}
+
+for ((i=1; i<=total; i++)); do
+    prefix=${ranges[$RANDOM % ${#ranges[@]}]}
+    ip="$prefix.$((RANDOM % 256)).$((RANDOM % 256))"
+
+    echo -ne "${G}[$i/$total]${N} Testing $ip\r"
+
+    scan_ip $ip &
+
+    ((running++))
+    if (( running >= threads )); then
+        wait
+        running=0
+    fi
 done
 
-echo "Total IPs generated: $(wc -l < ips.txt)"
-echo "Starting scan..."
+wait
 
-rm -f result.csv
-echo "IP,RTT" > result.csv
+echo -e "\n\n${B}Sorting results...${N}\n"
 
-while read ip; do
-    rtt=$(ping -c1 -W1 $ip 2>/dev/null | awk -F'=' '/time=/{print $4}' | cut -d' ' -f1)
-    if [ ! -z "$rtt" ]; then
-        echo "$ip,$rtt" >> result.csv
-        echo "OK  $ip  $rtt ms"
-    fi
-done < ips.txt
+echo -e "${B}🔥 Top 10 Fastest Cloudflare IPs:${N}"
+sort -t',' -k2,2n $results | head -n 10 | nl
 
-echo
-echo "Scan finished."
-echo "Top 20 fastest IPs:"
-sort -t',' -k2,2n result.csv | head -n 20
+echo -e "\n${G}✔ Done — HamidScanner ULTRA${N}\n"
