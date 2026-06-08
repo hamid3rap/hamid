@@ -3,32 +3,35 @@
 echo "Generating Cloudflare IP list..."
 rm -f ips.txt
 
-# Best Cloudflare ranges
-ranges=(
-104.16.0.0/20
-104.17.0.0/20
-104.18.0.0/20
-104.19.0.0/20
-104.20.0.0/20
-104.21.0.0/20
-104.22.0.0/20
-104.23.0.0/20
-104.24.0.0/20
-104.25.0.0/20
-104.26.0.0/20
-172.64.0.0/16
-172.65.0.0/16
-172.66.0.0/16
-172.67.0.0/16
-172.68.0.0/16
-172.69.0.0/16
-188.114.96.0/20
-188.114.112.0/20
+# Best Cloudflare prefixes
+prefixes=(
+104.16
+104.17
+104.18
+104.19
+104.20
+104.21
+104.22
+104.23
+104.24
+104.25
+104.26
+172.64
+172.65
+172.66
+172.67
+172.68
+172.69
+188.114
 )
 
-# Convert ranges to IP list
-for r in "${ranges[@]}"; do
-    prips $r >> ips.txt
+# Generate IPs without prips
+for p in "${prefixes[@]}"; do
+    for i in $(seq 0 255); do
+        for j in $(seq 1 254); do
+            echo "$p.$i.$j" >> ips.txt
+        done
+    done
 done
 
 echo "Total IPs generated: $(wc -l < ips.txt)"
